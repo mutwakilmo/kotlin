@@ -3,9 +3,8 @@ package org.jetbrains.kotlin.tools.projectWizard.plugins.kotlin
 import org.jetbrains.kotlin.tools.projectWizard.core.*
 import org.jetbrains.kotlin.tools.projectWizard.core.entity.*
 import org.jetbrains.kotlin.tools.projectWizard.core.service.FileSystemWizardService
-import org.jetbrains.kotlin.tools.projectWizard.core.service.WizardKotlinVersion
 import org.jetbrains.kotlin.tools.projectWizard.core.service.KotlinVersionProviderService
-import org.jetbrains.kotlin.tools.projectWizard.core.service.getPreviousStable
+import org.jetbrains.kotlin.tools.projectWizard.core.service.kotlinVersionKind
 import org.jetbrains.kotlin.tools.projectWizard.ir.buildsystem.*
 import org.jetbrains.kotlin.tools.projectWizard.phases.GenerationPhase
 import org.jetbrains.kotlin.tools.projectWizard.plugins.StructurePlugin
@@ -23,17 +22,14 @@ class KotlinPlugin(context: Context) : Plugin(context) {
         defaultValue = DEFAULT_VERSION
     }
 
-    val kotlinVersions by listProperty<WizardKotlinVersion>()
+    val kotlinVersions by listProperty<Version>()
 
     val initKotlinVersions by pipelineTask(GenerationPhase.PREPARE) {
+        title = "Downloading list of Kotlin versions"
+
         withAction {
-            val kotlinVersion = service<KotlinVersionProviderService>()!!.getKotlinVersion()
-            KotlinPlugin::kotlinVersions.addValues(
-                buildList {
-                    +kotlinVersion
-                    addIfNotNull(kotlinVersion.getPreviousStable())
-                }
-            )
+            val versions = service<KotlinVersionProviderService>()!!.getKotlinVersions()
+            KotlinPlugin::kotlinVersions.addValues(versions)
         }
     }
 

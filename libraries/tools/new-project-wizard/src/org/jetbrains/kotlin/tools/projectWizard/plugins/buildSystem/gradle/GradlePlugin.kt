@@ -107,6 +107,7 @@ abstract class GradlePlugin(context: Context) : BuildSystemPlugin(context) {
         runBefore(TemplatesPlugin::addTemplatesToModules)
         activityChecker = isGradle
         withAction {
+
             val templateDescriptor = when (buildSystemType) {
                 BuildSystemType.GradleKotlinDsl -> FileTemplateDescriptor(
                     "gradle/settings.gradle.kts.vm",

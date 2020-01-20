@@ -12,13 +12,15 @@ import org.jetbrains.kotlin.tools.projectWizard.plugins.printer.MavenPrinter
 import org.jetbrains.kotlin.tools.projectWizard.settings.buildsystem.DefaultRepository
 import java.nio.file.Path
 
+interface BuildFileLikeIR : BuildSystemIR, IrsOwner
+
 data class BuildFileIR(
     val name: String,
     val directoryPath: Path,
     val modules: ModulesStructureIR,
     val pom: PomIR,
     override val irs: List<BuildSystemIR>
-) : BuildSystemIR, IrsOwner {
+) : BuildFileLikeIR {
     override fun withReplacedIrs(irs: List<BuildSystemIR>): BuildFileIR = copy(irs = irs)
 
     @Suppress("UNCHECKED_CAST")

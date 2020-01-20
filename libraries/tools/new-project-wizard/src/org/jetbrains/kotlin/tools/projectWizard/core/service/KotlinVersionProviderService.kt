@@ -5,47 +5,31 @@
 
 package org.jetbrains.kotlin.tools.projectWizard.core.service
 
+import org.jetbrains.kotlin.tools.projectWizard.settings.buildsystem.Repositories
+import org.jetbrains.kotlin.tools.projectWizard.settings.buildsystem.Repository
 import org.jetbrains.kotlin.tools.projectWizard.settings.version.Version
 
 interface KotlinVersionProviderService : WizardService {
-    fun getKotlinVersion(): WizardKotlinVersion
+    fun getKotlinVersions(): List<Version>
 }
 
 class KotlinVersionProviderServiceImpl : KotlinVersionProviderService, IdeaIndependentWizardService {
-    // For now used only for tests
-    override fun getKotlinVersion(): WizardKotlinVersion =
-        WizardKotlinVersion(
-            Version.fromString("1.3.61"),
-            KotlinVersionKind.STABLE
-        )
-}
+    override fun getKotlinVersions(): List<Version> = listOf(DEFAULT)
 
-data class WizardKotlinVersion(
-    val version: Version,
-    val kind: KotlinVersionKind
-) {
     companion object {
-        val DEFAULT = WizardKotlinVersion(Version.fromString("1.3.61"), KotlinVersionKind.STABLE)
+        val DEFAULT = Version.fromString("1.3.61")
     }
 }
 
-fun WizardKotlinVersion.getPreviousStable(): WizardKotlinVersion? {
-    if (kind == KotlinVersionKind.STABLE) return null
-    val incremental = version.incremental
-    if (incremental > 0) {
-        val newIncrementalVersion = when {
-            incremental % 10 == 0 -> incremental - 10
-            else -> incremental - 1
-        }
-        return WizardKotlinVersion(
-            Version.fromComponents(version.major, version.minor, newIncrementalVersion),
-            KotlinVersionKind.STABLE
-        )
-    }
-    return null
+
+fun Version.kotlinVersionKind() = when {
+    "eap" in toString() -> KotlinVersionKind.EAP
+    "dev" in toString() -> KotlinVersionKind.DEV
+    else -> KotlinVersionKind.STABLE
 }
 
-
-enum class KotlinVersionKind {
-    STABLE, EAP, DEV
+enum class KotlinVersionKind(val repository: Repository?) {
+    STABLE(repository = null),
+    EAP(repository = Repositories.KOTLIN_EAP_BINTRAY),
+    DEV(repository = Repositories.KOTLIN_DEV_BINTRAY)
 }

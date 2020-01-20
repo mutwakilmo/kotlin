@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.tools.projectWizard.plugins.printer.printBuildFile
 import org.jetbrains.kotlin.tools.projectWizard.plugins.projectPath
 import org.jetbrains.kotlin.tools.projectWizard.settings.DisplayableSettingItem
 import org.jetbrains.kotlin.tools.projectWizard.settings.buildsystem.updateBuildFiles
+import java.nio.file.Path
 
 abstract class BuildSystemPlugin(context: Context) : Plugin(context) {
     val type by enumSetting<BuildSystemType>("Build System", GenerationPhase.FIRST_STEP) {
@@ -36,7 +37,8 @@ abstract class BuildSystemPlugin(context: Context) : Plugin(context) {
 
     val buildSystemData by property<List<BuildSystemData>>(emptyList())
 
-    val buildFiles by property<List<BuildFileIR>>(emptyList())
+    val buildFiles by listProperty<BuildFileIR>()
+    val extraBuildFiles by property<Map<Path, BuildFileLikeIR>>(emptyMap())
 
     val takeRepositoriesFromDependencies by pipelineTask(GenerationPhase.PROJECT_GENERATION) {
         runBefore(BuildSystemPlugin::createModules)
@@ -71,6 +73,11 @@ abstract class BuildSystemPlugin(context: Context) : Plugin(context) {
                     buildFile.directoryPath / buildFileData.buildFileName,
                     buildFileData.createPrinter().printBuildFile { buildFile.render(this) }
                 )
+            } andThen BuildSystemPlugin::extraBuildFiles.propertyValue.toList().mapSequenceIgnore { (path, extraBuildFile) ->
+                fileSystem.createFile(
+                    path,
+                    buildFileData.createPrinter().printBuildFile { extraBuildFile.render(this) }
+                )
             }
         }
     }
@@ -90,6 +97,17 @@ abstract class BuildSystemPlugin(context: Context) : Plugin(context) {
         withAction {
             BuildSystemPlugin::buildSystemData.addValues(data)
         }
+    }
+}
+
+inline fun <reified B : BuildFileLikeIR> TaskRunningContext.updateBuildFileIROfTypeFor(
+    buildFileIR: BuildFileIR,
+    filename: String,
+    crossinline updater: (B?) -> B
+) {
+    BuildSystemPlugin::extraBuildFiles.update { extraBuildFiles ->
+        val path = buildFileIR.directoryPath / filename
+        Success(extraBuildFiles + (path to updater(extraBuildFiles[path] as? B)))
     }
 }
 
